@@ -1,4 +1,20 @@
 console.log("starting");
+let currentAction = null;
+let gameSize = 5;
+let gameDifficulty = 5;
+let grid = {
+  // "0-1": true,
+  // "1-4": true,
+  "3-4": true,
+};
+const gameDifficultyInput = document.getElementById("gameDifficultyInput");
+const gameSizeInput = document.getElementById("gameSizeInput");
+const gameArea = document.getElementById("gameArea");
+const gameButtons = document.getElementById("gameButtons");
+const newGameButton = document.getElementById("newGameButton");
+gameSizeInput.value = gameSize;
+gameDifficultyInput.value = gameDifficulty;
+
 const DIRECTIONS = {
   n: [0, -1],
   s: [0, 1],
@@ -46,26 +62,29 @@ const GAME_ACTIONS = {
     flipCells(cellsToFlip);
   },
 };
-let currentAction = null;
-let gameSize = 5;
-let grid = {
-  "0-1": true,
-  "1-4": true,
-  "3-4": true,
-};
-const gameSizeInput = document.getElementById("gameSizeInput");
-const gameArea = document.getElementById("gameArea");
-const gameButtons = document.getElementById("gameButtons");
 
+renderGame();
+renderButtons();
+newGameButton.addEventListener("click", function (e) {
+  newGame();
+});
 gameSizeInput.addEventListener("change", function (e) {
   let newSize = e.target.value;
   if (newSize !== gameSize) {
     gameSize = newSize;
   }
-  renderGame();
+  newGame();
+});
+gameDifficultyInput.addEventListener("change", function (e) {
+  let newDifficulty = e.target.value;
+  if (newDifficulty !== gameDifficulty) {
+    gameDifficulty = newDifficulty;
+  }
+  newGame();
 });
 
 gameArea.addEventListener("click", function (e) {
+  if (!currentAction) alert("Please pick an action");
   // renderGame();
   console.log(e.target);
   let coord = e.target.dataset.coord;
@@ -90,8 +109,10 @@ function renderButtons() {
   gameButtons.innerHTML = buttonHTML;
 }
 
-renderGame();
-renderButtons();
+function newGame() {
+  createRandomGrid();
+  renderGame();
+}
 
 function renderGame() {
   gameArea.innerHTML = "";
@@ -109,6 +130,9 @@ function renderGame() {
     }
   }
   gameArea.innerHTML = gameHTML;
+  if (checkVictory()) {
+    alert("you win!");
+  }
 }
 
 function makeCoord(a, b) {
@@ -166,4 +190,44 @@ function numInGameArea(n) {
 }
 function numOutsideGameArea(n) {
   return !numInGameArea(n);
+}
+function checkVictory() {
+  console.log("checkVictory");
+  // any elements in grid are true...
+  for (let key in grid) {
+    if (grid[key]) return false;
+  }
+  return true;
+}
+
+function createRandomGrid() {
+  let arr = [];
+  for (let x = 0; x < gameSize; x++) {
+    for (let y = 0; y < gameSize; y++) {
+      arr.push(makeCoord(x, y));
+    }
+  }
+  shuffleArray(arr);
+  console.log(arr);
+  let subset = arr.slice(0, gameDifficulty);
+  grid = {};
+  subset.forEach((coord) => (grid[coord] = true));
+  renderGame();
+}
+
+function shuffleArray(array) {
+  let currentIndex = array.length;
+
+  // While there remain elements to shuffle...
+  while (currentIndex != 0) {
+    // Pick a remaining element...
+    let randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex--;
+
+    // And swap it with the current element.
+    [array[currentIndex], array[randomIndex]] = [
+      array[randomIndex],
+      array[currentIndex],
+    ];
+  }
 }
