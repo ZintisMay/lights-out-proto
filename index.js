@@ -56,9 +56,37 @@ const GAME_ACTIONS = {
   },
   box: function (coord) {
     let cellsToFlip = [coord];
-    cellsToFlip.push(getAdjacentCellCoords(coord, "s"));
-    cellsToFlip.push(getAdjacentCellCoords(coord, "se"));
-    cellsToFlip.push(getAdjacentCellCoords(coord, "e"));
+    ["e", "se", "s"].forEach((dir) =>
+      cellsToFlip.push(...getXAdjacentCellCoords(coord, dir, gameSize))
+    );
+    flipCells(cellsToFlip);
+  },
+  line: function (coord) {
+    let cellsToFlip = [coord];
+    ["n", "s"].forEach((dir) =>
+      cellsToFlip.push(getAdjacentCellCoords(coord, dir))
+    );
+    flipCells(cellsToFlip);
+  },
+  bar: function (coord) {
+    let cellsToFlip = [coord];
+    ["e", "w"].forEach((dir) =>
+      cellsToFlip.push(getAdjacentCellCoords(coord, dir))
+    );
+    flipCells(cellsToFlip);
+  },
+  row: function (coord) {
+    let cellsToFlip = [coord];
+    ["e", "w"].forEach((dir) =>
+      cellsToFlip.push(...getXAdjacentCellCoords(coord, dir, gameSize))
+    );
+    flipCells(cellsToFlip);
+  },
+  column: function (coord) {
+    let cellsToFlip = [coord];
+    ["n", "s"].forEach((dir) =>
+      cellsToFlip.push(...getXAdjacentCellCoords(coord, dir, gameSize))
+    );
     flipCells(cellsToFlip);
   },
 };
