@@ -35,6 +35,9 @@ input {
   height: calc(100% / 3);
   outline: 1px solid black;
 }
+.cell:hover {
+  outline: 3px solid aqua;
+}
 .cell.lit {
   background-color: lightblue;
 }

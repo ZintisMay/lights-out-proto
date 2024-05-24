@@ -1,17 +1,18 @@
-console.log("starting");
 let currentAction = null;
-let gameSize = 5;
-let gameDifficulty = 5;
-let grid = {
-  // "0-1": true,
-  // "1-4": true,
-  "3-4": true,
-};
+let gameSize = 4;
+let gameDifficulty = 4;
+let moves = 0;
+let allCoords = [];
+let actionCount = {};
+let history = [];
+let grid = {};
 const gameDifficultyInput = document.getElementById("gameDifficultyInput");
 const gameSizeInput = document.getElementById("gameSizeInput");
 const gameArea = document.getElementById("gameArea");
 const gameButtons = document.getElementById("gameButtons");
+const moveBox = document.getElementById("moveBox");
 const newGameButton = document.getElementById("newGameButton");
+const resetGameButton = document.getElementById("resetGameButton");
 gameSizeInput.value = gameSize;
 gameDifficultyInput.value = gameDifficulty;
 
@@ -57,7 +58,7 @@ const GAME_ACTIONS = {
   box: function (coord) {
     let cellsToFlip = [coord];
     ["e", "se", "s"].forEach((dir) =>
-      cellsToFlip.push(...getXAdjacentCellCoords(coord, dir, gameSize))
+      cellsToFlip.push(getAdjacentCellCoords(coord, dir))
     );
     flipCells(cellsToFlip);
   },
@@ -92,10 +93,9 @@ const GAME_ACTIONS = {
 };
 
 renderGame();
-renderButtons();
-newGameButton.addEventListener("click", function (e) {
-  newGame();
-});
+
+newGameButton.addEventListener("click", newGame);
+resetGameButton.addEventListener("click", resetGame);
 gameSizeInput.addEventListener("change", function (e) {
   let newSize = e.target.value;
   if (newSize !== gameSize) {
@@ -111,34 +111,36 @@ gameDifficultyInput.addEventListener("change", function (e) {
   newGame();
 });
 
+// click box
 gameArea.addEventListener("click", function (e) {
   if (!currentAction) alert("Please pick an action");
-  // renderGame();
-  console.log(e.target);
   let coord = e.target.dataset.coord;
-  console.log(coord);
   GAME_ACTIONS[currentAction](coord);
-  // GAME_ACTIONS.diagonals(coord);
+  actionCount[currentAction]--;
+  incrementMoves();
   renderGame();
+  addToHistory();
+  if (isVictorious()) setTimeout(() => alert("you win!"), 10);
 });
 
+// click button
 gameButtons.addEventListener("click", function (e) {
   let action = e.target.dataset.action;
   currentAction = action;
 });
 
-function renderButtons() {
-  let buttonHTML = "";
-  for (let action in GAME_ACTIONS) {
-    let selected = action === currentAction ? "selected" : "";
-    let classes = `button ${selected}`;
-    buttonHTML += `<button class="${classes}" data-action="${action}">${action}</button>`;
-  }
-  gameButtons.innerHTML = buttonHTML;
-}
-
 function newGame() {
-  createRandomGrid();
+  actionCount = {};
+  resetMoves();
+  createEmptyGrid();
+  for (let x = 0; x < gameDifficulty; x++) {
+    let coords = chooseRandomCell();
+    let action = chooseRandomAction();
+    GAME_ACTIONS[action](coords);
+    actionCount[action] = actionCount[action] ? actionCount[action] + 1 : 1;
+  }
+  console.log(actionCount);
+  addToHistory();
   renderGame();
 }
 
@@ -158,9 +160,15 @@ function renderGame() {
     }
   }
   gameArea.innerHTML = gameHTML;
-  if (checkVictory()) {
-    alert("you win!");
+
+  let buttonHTML = "";
+  for (let action in actionCount) {
+    let count = actionCount[action];
+    let selected = action === currentAction ? "selected" : "";
+    let classes = `button ${selected}`;
+    buttonHTML += `<button class="${classes}" data-action="${action}">${action}<br>${count}</button>`;
   }
+  gameButtons.innerHTML = buttonHTML;
 }
 
 function makeCoord(a, b) {
@@ -168,6 +176,7 @@ function makeCoord(a, b) {
 }
 
 function coordToXY(coord) {
+  console.log(coord);
   return coord.split("-").map((n) => Number(n));
 }
 
@@ -176,7 +185,6 @@ function flipCell(coord) {
 }
 
 function flipCells(coords) {
-  console.log(coords);
   coords
     .filter((c) => !!c)
     .forEach((c) => {
@@ -219,8 +227,7 @@ function numInGameArea(n) {
 function numOutsideGameArea(n) {
   return !numInGameArea(n);
 }
-function checkVictory() {
-  console.log("checkVictory");
+function isVictorious() {
   // any elements in grid are true...
   for (let key in grid) {
     if (grid[key]) return false;
@@ -228,22 +235,41 @@ function checkVictory() {
   return true;
 }
 
-function createRandomGrid() {
+// function createRandomGrid() {
+//   //Make arr
+//   let arr = [];
+//   // make all coords
+//   for (let x = 0; x < gameSize; x++) {
+//     for (let y = 0; y < gameSize; y++) {
+//       arr.push(makeCoord(x, y));
+//     }
+//   }
+
+//   allCoords = [...arr];
+//   shuffleArrayInPlace(arr);
+//   let subset = arr.slice(0, gameDifficulty);
+//   grid = {};
+//   subset.forEach((coord) => (grid[coord] = true));
+//   renderGame();
+// }
+
+function createEmptyGrid() {
+  //Make arr
   let arr = [];
+  // make all coords
   for (let x = 0; x < gameSize; x++) {
     for (let y = 0; y < gameSize; y++) {
       arr.push(makeCoord(x, y));
     }
   }
-  shuffleArray(arr);
-  console.log(arr);
-  let subset = arr.slice(0, gameDifficulty);
+
+  allCoords = [...arr];
+  shuffleArrayInPlace(arr);
   grid = {};
-  subset.forEach((coord) => (grid[coord] = true));
   renderGame();
 }
 
-function shuffleArray(array) {
+function shuffleArrayInPlace(array) {
   let currentIndex = array.length;
 
   // While there remain elements to shuffle...
@@ -258,4 +284,42 @@ function shuffleArray(array) {
       array[currentIndex],
     ];
   }
+}
+
+function chooseRandomAction() {
+  let actionList = Object.keys(GAME_ACTIONS);
+  return actionList[rand(actionList.length)];
+}
+function chooseRandomCell() {
+  return allCoords[rand(allCoords.length)];
+}
+
+function rand(max) {
+  return Math.floor(Math.random() * max);
+}
+
+function incrementMoves() {
+  moves++;
+  moveBox.textContent = moves;
+}
+function resetMoves() {
+  moves = 0;
+  moveBox.textContent = moves;
+}
+function addToHistory() {
+  let chapter = {
+    grid: { ...grid },
+    moves: moves,
+    actionCount: { ...actionCount },
+  };
+  history.push(chapter);
+}
+function resetGame() {
+  history.length = 1;
+  let chapter = history[0];
+  grid = { ...chapter.grid };
+  moves = chapter.moves;
+  actionCount = { ...chapter.actionCount };
+  renderGame();
+  resetMoves();
 }
