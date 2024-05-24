@@ -20,24 +20,64 @@ input {
   width: 500px;
   outline: 5px solid black;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
   flex-wrap: wrap;
 }
 .button {
+  padding: 0;
+  position: relative;
   height: 100px;
   width: 100px;
   margin: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  flex-direction: column;
+}
+.button.selected {
+  outline: 2px solid aqua;
+}
+.button.grayOut {
+  pointer-events: none;
+  opacity: 0.5;
+}
+.button * {
+  pointer-events: none;
+}
+.button img {
+  height: 75%;
+  width: 75%;
 }
 
 .cell {
   width: calc(100% / 3);
   height: calc(100% / 3);
   outline: 1px solid black;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 .cell:hover {
   outline: 3px solid aqua;
 }
 .cell.lit {
   background-color: lightblue;
+}
+.dotRow {
+  position: absolute;
+  bottom: 0px;
+  width: 100%;
+  /* margin: 5px; */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.dot {
+  margin: 0 2px;
+  border-radius: 50%;
+  height: 10px;
+  width: 10px;
+  background-color: red;
 }

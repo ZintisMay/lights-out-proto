@@ -1,6 +1,6 @@
 let currentAction = null;
 let gameSize = 4;
-let gameDifficulty = 4;
+let gameDifficulty = 3;
 let moves = 0;
 let allCoords = [];
 let actionCount = {};
@@ -92,23 +92,33 @@ const GAME_ACTIONS = {
   },
 };
 
-renderGame();
+// Adds logger to track name and coord of each setup move
+applyLogWrapper();
+function applyLogWrapper() {
+  for (let action in GAME_ACTIONS) {
+    let originalFunction = GAME_ACTIONS[action];
+    GAME_ACTIONS[action] = function (coord) {
+      console.log(action, coord);
+      originalFunction(coord);
+    };
+  }
+}
 
 newGameButton.addEventListener("click", newGame);
 resetGameButton.addEventListener("click", resetGame);
+
+// change game settings
 gameSizeInput.addEventListener("change", function (e) {
   let newSize = e.target.value;
   if (newSize !== gameSize) {
     gameSize = newSize;
   }
-  newGame();
 });
 gameDifficultyInput.addEventListener("change", function (e) {
   let newDifficulty = e.target.value;
   if (newDifficulty !== gameDifficulty) {
     gameDifficulty = newDifficulty;
   }
-  newGame();
 });
 
 // click box
@@ -118,18 +128,25 @@ gameArea.addEventListener("click", function (e) {
   GAME_ACTIONS[currentAction](coord);
   actionCount[currentAction]--;
   incrementMoves();
-  renderGame();
-  addToHistory();
+  saveGameStartState();
   if (isVictorious()) setTimeout(() => alert("you win!"), 10);
+  if (actionCount[currentAction] <= 0) {
+    currentAction = null;
+  }
+  renderGame();
 });
 
 // click button
 gameButtons.addEventListener("click", function (e) {
   let action = e.target.dataset.action;
   currentAction = action;
+  renderGame();
 });
 
 function newGame() {
+  console.log(
+    `starting new game with difficulty (${gameDifficulty}) and size (${gameSize})`
+  );
   actionCount = {};
   resetMoves();
   createEmptyGrid();
@@ -140,7 +157,8 @@ function newGame() {
     actionCount[action] = actionCount[action] ? actionCount[action] + 1 : 1;
   }
   console.log(actionCount);
-  addToHistory();
+  clearHistory();
+  saveGameStartState();
   renderGame();
 }
 
@@ -154,7 +172,7 @@ function renderGame() {
       let widthHeight = `calc(100% /${gameSize})`;
       let classes = isLit ? "cell lit" : "cell";
       let cell = `
-        <div style="height:${widthHeight};width:${widthHeight};" class="${classes}" data-coord="${coordStr}"></div>
+        <div style="height:${widthHeight};width:${widthHeight};" class="${classes}" data-coord="${coordStr}">${coordStr}</div>
       `;
       gameHTML += cell;
     }
@@ -165,8 +183,13 @@ function renderGame() {
   for (let action in actionCount) {
     let count = actionCount[action];
     let selected = action === currentAction ? "selected" : "";
-    let classes = `button ${selected}`;
-    buttonHTML += `<button class="${classes}" data-action="${action}">${action}<br>${count}</button>`;
+    let zeroCount = count === 0 ? "grayOut" : "";
+    let classes = `button ${selected} ${zeroCount}`;
+    let dotRowHTML = "";
+    for (let x = 0; x < count; x++) {
+      dotRowHTML += `<div class="dot"></div>`;
+    }
+    buttonHTML += `<button class="${classes}" data-action="${action}"><img src="./images/${action}.png" /><div class="dotRow">${dotRowHTML}</div></button>`;
   }
   gameButtons.innerHTML = buttonHTML;
 }
@@ -176,7 +199,6 @@ function makeCoord(a, b) {
 }
 
 function coordToXY(coord) {
-  console.log(coord);
   return coord.split("-").map((n) => Number(n));
 }
 
@@ -227,6 +249,17 @@ function numInGameArea(n) {
 function numOutsideGameArea(n) {
   return !numInGameArea(n);
 }
+function isDefeated() {
+  if (actionSum() == 0) return true;
+  return false;
+}
+function actionSum() {
+  let actionTotal = 0;
+  for (let action in actionCount) {
+    actionTotal += actionCount[action];
+  }
+  return actionTotal;
+}
 function isVictorious() {
   // any elements in grid are true...
   for (let key in grid) {
@@ -234,24 +267,6 @@ function isVictorious() {
   }
   return true;
 }
-
-// function createRandomGrid() {
-//   //Make arr
-//   let arr = [];
-//   // make all coords
-//   for (let x = 0; x < gameSize; x++) {
-//     for (let y = 0; y < gameSize; y++) {
-//       arr.push(makeCoord(x, y));
-//     }
-//   }
-
-//   allCoords = [...arr];
-//   shuffleArrayInPlace(arr);
-//   let subset = arr.slice(0, gameDifficulty);
-//   grid = {};
-//   subset.forEach((coord) => (grid[coord] = true));
-//   renderGame();
-// }
 
 function createEmptyGrid() {
   //Make arr
@@ -266,7 +281,6 @@ function createEmptyGrid() {
   allCoords = [...arr];
   shuffleArrayInPlace(arr);
   grid = {};
-  renderGame();
 }
 
 function shuffleArrayInPlace(array) {
@@ -306,13 +320,16 @@ function resetMoves() {
   moves = 0;
   moveBox.textContent = moves;
 }
-function addToHistory() {
+function saveGameStartState() {
   let chapter = {
     grid: { ...grid },
     moves: moves,
     actionCount: { ...actionCount },
   };
   history.push(chapter);
+}
+function clearHistory() {
+  history = [];
 }
 function resetGame() {
   history.length = 1;
