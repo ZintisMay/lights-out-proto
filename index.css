@@ -7,6 +7,20 @@
   align-items: center;
   flex-wrap: wrap;
 }
+.gameButtons {
+  /* height: 200px; */
+  width: 500px;
+  outline: 5px solid black;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.button {
+  height: 100px;
+  width: 100px;
+  margin: 10px;
+}
 
 .cell {
   width: calc(100% / 3);
