@@ -16,6 +16,12 @@ const resetGameButton = document.getElementById("resetGameButton");
 gameSizeInput.value = gameSize;
 gameDifficultyInput.value = gameDifficulty;
 
+const SOUNDS = {
+  animeWow: new Audio("./audio/anime-wow-sound-effect.mp3"),
+  duckToy: new Audio("./audio/duck-toy-sound.mp3"),
+  punch: new Audio("./audio/punch_u4LmMsr.mp3"),
+};
+
 const DIRECTIONS = {
   n: [0, -1],
   s: [0, 1],
@@ -126,10 +132,15 @@ gameArea.addEventListener("click", function (e) {
   if (!currentAction) alert("Please pick an action");
   let coord = e.target.dataset.coord;
   GAME_ACTIONS[currentAction](coord);
+  SOUNDS.duckToy.play();
   actionCount[currentAction]--;
   incrementMoves();
   saveGameStartState();
-  if (isVictorious()) setTimeout(() => alert("you win!"), 10);
+  if (isVictorious())
+    setTimeout(() => {
+      alert("you win!");
+      SOUNDS.animeWow.play();
+    }, 10);
   if (actionCount[currentAction] <= 0) {
     currentAction = null;
   }
