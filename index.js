@@ -1,5 +1,10 @@
+// Setup Values
 let currentAction = null;
 let gameSize = 4;
+const MIN_GAME_SIZE = 3;
+const MIN_GAME_DIFFICULTY = 1;
+const MAX_GAME_SIZE = 10;
+const MAX_GAME_DIFFICULTY = 20;
 let gameDifficulty = 3;
 let moves = 0;
 let allCoords = [];
@@ -8,20 +13,26 @@ let history = [];
 let grid = {};
 const gameDifficultyInput = document.getElementById("gameDifficultyInput");
 const gameSizeInput = document.getElementById("gameSizeInput");
-const gameArea = document.getElementById("gameArea");
+const gameAreaDiv = document.getElementById("gameArea");
 const gameButtons = document.getElementById("gameButtons");
-const moveBox = document.getElementById("moveBox");
+const moveBoxDiv = document.getElementById("moveBox");
 const newGameButton = document.getElementById("newGameButton");
 const resetGameButton = document.getElementById("resetGameButton");
 gameSizeInput.value = gameSize;
+gameSizeInput.max = MAX_GAME_SIZE;
+gameSizeInput.min = MIN_GAME_SIZE;
 gameDifficultyInput.value = gameDifficulty;
+gameDifficultyInput.max = MAX_GAME_DIFFICULTY;
+gameDifficultyInput.min = MIN_GAME_DIFFICULTY;
 
 const SOUNDS = {
   animeWow: new Audio("./audio/anime-wow-sound-effect.mp3"),
   duckToy: new Audio("./audio/duck-toy-sound.mp3"),
   punch: new Audio("./audio/punch_u4LmMsr.mp3"),
+  sadTrombone: new Audio("./audio/sadtrombone.swf.mp3"),
 };
 
+// This sets up n, s, e, w as coordinate modifier pairs. Makes it easy to encode directions
 const DIRECTIONS = {
   n: [0, -1],
   s: [0, 1],
@@ -32,6 +43,8 @@ const DIRECTIONS = {
   sw: [-1, 1],
   nw: [-1, -1],
 };
+
+// Sets up all possible moves, the key is the name of the image file
 const GAME_ACTIONS = {
   cross: function (coord) {
     let cellsToFlip = [coord];
@@ -110,37 +123,55 @@ function applyLogWrapper() {
   }
 }
 
+// Game Buttons
 newGameButton.addEventListener("click", newGame);
 resetGameButton.addEventListener("click", resetGame);
 
 // change game settings
 gameSizeInput.addEventListener("change", function (e) {
   let newSize = e.target.value;
-  if (newSize !== gameSize) {
+  if (newSize >= MIN_GAME_SIZE) {
     gameSize = newSize;
   }
 });
 gameDifficultyInput.addEventListener("change", function (e) {
   let newDifficulty = e.target.value;
-  if (newDifficulty !== gameDifficulty) {
+  if (newDifficulty >= MIN_GAME_DIFFICULTY) {
     gameDifficulty = newDifficulty;
   }
 });
 
-// click box
-gameArea.addEventListener("click", function (e) {
-  if (!currentAction) alert("Please pick an action");
+// Play the game
+gameAreaDiv.addEventListener("click", function (e) {
+  if (!currentAction) alert("Please pick an action button below");
+  // Get the coord from cell
   let coord = e.target.dataset.coord;
+  // Take the action
   GAME_ACTIONS[currentAction](coord);
-  SOUNDS.duckToy.play();
+  // Play a sound
+  if (rand(2) === 1) {
+    SOUNDS.duckToy.play();
+  } else {
+    SOUNDS.punch.play();
+  }
+  // Decrement action count (cannot take move again)
   actionCount[currentAction]--;
   incrementMoves();
   saveGameStartState();
-  if (isVictorious())
+
+  // check for win
+  if (isVictorious()) {
     setTimeout(() => {
       alert("you win!");
       SOUNDS.animeWow.play();
     }, 10);
+  } else if (isDefeated()) {
+    setTimeout(() => {
+      alert("out of moves!");
+      SOUNDS.sadTrombone.play();
+    }, 10);
+  }
+
   if (actionCount[currentAction] <= 0) {
     currentAction = null;
   }
@@ -161,9 +192,19 @@ function newGame() {
   actionCount = {};
   resetMoves();
   createEmptyGrid();
-  for (let x = 0; x < gameDifficulty; x++) {
+  let setOfMoves = new Set();
+  let accidentalRepeatCount = 0;
+  for (let x = 0; x < gameDifficulty && accidentalRepeatCount < 10; x++) {
     let coords = chooseRandomCell();
     let action = chooseRandomAction();
+    let actionCoordStr = coords + "-" + action;
+    // If the same move has been placed to the same coords, try again
+    if (setOfMoves.has(actionCoordStr)) {
+      x--;
+      continue;
+    } else {
+      setOfMoves.add(actionCoordStr);
+    }
     GAME_ACTIONS[action](coords);
     actionCount[action] = actionCount[action] ? actionCount[action] + 1 : 1;
   }
@@ -174,7 +215,7 @@ function newGame() {
 }
 
 function renderGame() {
-  gameArea.innerHTML = "";
+  gameAreaDiv.innerHTML = "";
   gameHTML = "";
   for (let y = 0; y < gameSize; y++) {
     for (let x = 0; x < gameSize; x++) {
@@ -188,7 +229,7 @@ function renderGame() {
       gameHTML += cell;
     }
   }
-  gameArea.innerHTML = gameHTML;
+  gameAreaDiv.innerHTML = gameHTML;
 
   let buttonHTML = "";
   for (let action in actionCount) {
@@ -325,11 +366,11 @@ function rand(max) {
 
 function incrementMoves() {
   moves++;
-  moveBox.textContent = moves;
+  moveBoxDiv.textContent = moves;
 }
 function resetMoves() {
   moves = 0;
-  moveBox.textContent = moves;
+  moveBoxDiv.textContent = moves;
 }
 function saveGameStartState() {
   let chapter = {
